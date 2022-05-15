@@ -1,32 +1,68 @@
 package scala.files
 
-class Directory(override val parentPath: String, override val name: String, val contents: List[DirEntry]) extends DirEntry(parentPath, name) {
-  def findDescendant(path: List[String]): Directory = ???
+import scala.annotation.tailrec
 
-  def getAllFoldersInPath: List[String] = {
-    path.substring(1).split(Directory.SEPARATOR).toList
-    // /a/b/c/d => List["a", "b", "c", "d"]
+class Directory(override val parentPath: String, override val name: String, val contents: List[DirEntry])
+  extends DirEntry(parentPath, name) {
+
+  def addEntry(newEntry: DirEntry): Directory =
+    new Directory(parentPath, name, contents :+ newEntry)
+
+  def removeEntry(entryName: String): Directory =
+    if (!hasEntry(entryName)) this
+    else new Directory(parentPath, name, contents.filter(!_.name.equals(entryName)))
+
+  def findEntry(entryName: String): DirEntry = {
+    @tailrec
+    def findEntryHelper(name: String, contentList: List[DirEntry]): DirEntry =
+      if (contentList.isEmpty) null
+      else if (contentList.head.name.equals(name)) contentList.head
+      else findEntryHelper(name, contentList.tail)
+
+    findEntryHelper(entryName, contents)
   }
 
-  def hasEntry(name: String): Boolean = ???
+  def hasEntry(name: String): Boolean =
+    findEntry(name) != null
 
-  def addEntry(newEntry: DirEntry): Directory = ???
+  def replaceEntry(entryName: String, newEntry: DirEntry): Directory =
+    new Directory(parentPath, name, contents.filter(!_.name.equals(entryName)) :+ newEntry)
 
-  def findEntry(entryName: String): DirEntry = ???
+  def isRoot: Boolean = parentPath.isEmpty
 
-  def replaceEntry(entryName: String, newEntry: DirEntry): Directory = ???
+  def findDescendant(path: List[String]): Directory =
+    if (path.isEmpty) this
+    else findEntry(path.head).asDirectory.findDescendant(path.tail)
 
-  def asDirectory: Directory = this
+  def findDescendant(relativePath: String): Directory =
+    if (relativePath.isEmpty) this
+    else findDescendant(relativePath.split(Directory.SEPARATOR).toList)
+
+  def getAllFoldersInPath: List[String] =
+  // /a/b/c/d => List["a","b","c","d"]
+    path.substring(1).split(Directory.SEPARATOR).toList.filter(!_.isEmpty)
+
+  override def asDirectory: Directory = this
+
+  override def getType: String = "Directory"
+
+//  override def asFile: File = throw new FilesystemException("A directory cannot be converted to a file!")
+
+  override def isDirectory: Boolean = true
+
+  override def isFile: Boolean = false
 }
+
 
 object Directory {
   val SEPARATOR = "/"
   val ROOT_PATH = "/"
+  val INVALID_RELATIVE_PATH = "."
+  val VALID_RELATIVE_PATH = ".."
 
-  def ROOT: Directory =
-    Directory.empty("", "")
+  def ROOT: Directory = Directory.empty("", "")
 
-  def empty(parentPath: String, name: String): Directory =
+  // instantiating objects with methods
+  def empty(parentPath: String, name: String) =
     new Directory(parentPath, name, List())
-
 }
