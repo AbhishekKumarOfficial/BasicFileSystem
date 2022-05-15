@@ -1,7 +1,6 @@
 package scala.filesystem
 
 import scala.files.Directory
-import scala.filesystem.State.SHELL_TOKEN
 
 class State(val root: Directory, val wd: Directory, val output: String) {
   def show: Unit = {
